@@ -1,0 +1,17 @@
+{
+  "name": "NexusBank",
+  "short_name": "NexusBank",
+  "description": "Next Gen Contactless Banking Experience",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
