@@ -64,9 +64,7 @@ export function ApiMarketplace() {
     return (
         <section className="container px-4 md:px-6 py-16" id="api-marketplace">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
-                <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80">
-                    For Developers
-                </div>
+                {/* Badge Removed */}
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                     Build faster with our APIs
                 </h2>

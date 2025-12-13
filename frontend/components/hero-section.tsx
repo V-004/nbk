@@ -17,11 +17,7 @@ export function HeroSection() {
 
       <div className="container relative z-10 px-4 md:px-6">
         <div className="flex flex-col items-center gap-6 text-center animate-in slide-in-from-bottom-5 fade-in duration-700">
-          <div className="inline-flex items-center rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-sm font-medium text-indigo-600 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-400">
-            <span className="flex h-2 w-2 rounded-full bg-indigo-600 mr-2 animate-pulse"></span>
-            NexusBank 2.0 is Live
-            <ChevronRight className="ml-1 h-3 w-3" />
-          </div>
+          {/* Badge Removed */}
 
           <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400">
             Banking that Thinks <br className="hidden sm:inline" /> Like You Do

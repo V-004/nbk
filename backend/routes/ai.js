@@ -14,7 +14,7 @@ const { User, Account, Transaction } = require('../models_mongo');
 // Helper: Generate content with fallback models
 async function generateWithFallback(prompt, imagePart = null) {
     // 429 Quota Handling: Fallback to reliable latest alias if generic 2.0 fails
-    const models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"];
+    const models = ["gemini-2.0-flash-exp", "gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro"];
 
     console.log("[AI] Starting generation with fallback chain...");
 
@@ -70,17 +70,19 @@ router.post('/chat', async (req, res) => {
 
         if (process.env.GEMINI_API_KEY) {
             try {
-                // OLD: const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-                // OLD: const result = await model.generateContent(prompt);
-
                 // NEW: Robust Fallback
-                const result = await generateWithFallback(prompt);
+                const result = await generateWithFallback(message + "\n\nContext:\n" + context);
 
                 const response = await result.response;
                 let text = response.text();
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-                return res.json(JSON.parse(text));
+                // Attempt to parse JSON, if it's plain text, wrap it
+                try {
+                    return res.json(JSON.parse(text));
+                } catch (e) {
+                    return res.json({ reply: text });
+                }
             } catch (apiError) {
                 console.error("Gemini API Error (Falling back to Mock):", apiError.message);
                 // Fall through to mock logic below
@@ -233,7 +235,6 @@ router.post('/analyze-spending', async (req, res) => {
             });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
         const prompt = `
             You are a stern but helpful financial advisor. Analyze this spending data for a user.
             
@@ -251,11 +252,20 @@ router.post('/analyze-spending', async (req, res) => {
             Do not include markdown or code blocks. Just the JSON string.
         `;
 
-        const result = await model.generateContent(prompt);
-        const responseText = result.response.text();
-        const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-        res.json(JSON.parse(cleanJson));
+        try {
+            const result = await generateWithFallback(prompt);
+            const responseText = result.response.text();
+            const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+            res.json(JSON.parse(cleanJson));
+        } catch (error) {
+            console.error("Spending analysis failed, using mock", error);
+            return res.json({
+                healthScore: 85,
+                praise: "Spending is within limits (Analysis Failed).",
+                warning: "High spending detected in Food (Mock).",
+                tip: "Try cooking at home more often (Mock)."
+            });
+        }
 
     } catch (err) {
         console.error("Analysis Error:", err);

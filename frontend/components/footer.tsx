@@ -9,7 +9,7 @@ export default function Footer() {
           <div className="flex flex-col gap-2">
             <Logo />
             <p className="text-sm text-muted-foreground">
-              Enabling secure and seamless banking integrations for developers.
+              Enabling secure and seamless banking integrations.
             </p>
           </div>
 
