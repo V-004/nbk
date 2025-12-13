@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Bot, Send, X, MessageSquare, Loader2, Sparkles, Mic, Volume2, StopCircle } from "lucide-react"
 import Image from "next/image"
@@ -203,19 +204,25 @@ export function AiAssistant() {
                     onSubmit={(e) => { e.preventDefault(); handleSend(); }}
                 >
                     <div className="flex gap-2 w-full">
-                        <select
-                            className="h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors cursor-pointer data-[placeholder]:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                            value={language}
-                            onChange={(e) => setLanguage(e.target.value)}
-                        >
-                            <option value="en-US">English</option>
-                            <option value="hi-IN">Hindi (हिंदी)</option>
-                            <option value="kn-IN">Kannada (ಕನ್ನಡ)</option>
-                            <option value="ta-IN">Tamil (தமிழ்)</option>
-                            <option value="te-IN">Telugu (తెలుగు)</option>
-                            <option value="bn-IN">Bengali (বাংলা)</option>
-                            <option value="mr-IN">Marathi (मराठी)</option>
-                        </select>
+                        <Select value={language} onValueChange={setLanguage}>
+                            <SelectTrigger className="w-[160px] h-9 bg-background/50 backdrop-blur-sm border-violet-200 dark:border-violet-800">
+                                <SelectValue placeholder="Language" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="en-US">English</SelectItem>
+                                <SelectItem value="hi-IN">Hindi (हिंदी)</SelectItem>
+                                <SelectItem value="bn-IN">Bengali (বাংলা)</SelectItem>
+                                <SelectItem value="kn-IN">Kannada (ಕನ್ನಡ)</SelectItem>
+                                <SelectItem value="ta-IN">Tamil (தமிழ்)</SelectItem>
+                                <SelectItem value="te-IN">Telugu (తెలుగు)</SelectItem>
+                                <SelectItem value="mr-IN">Marathi (मराठी)</SelectItem>
+                                <SelectItem value="ml-IN">Malayalam (മലയാളം)</SelectItem>
+                                <SelectItem value="gu-IN">Gujarati (ગુજરાતી)</SelectItem>
+                                <SelectItem value="pa-IN">Punjabi (ਪੰਜਾਬੀ)</SelectItem>
+                                <SelectItem value="or-IN">Odia (ଓଡ଼ିଆ)</SelectItem>
+                                <SelectItem value="as-IN">Assamese (অসমীয়া)</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
                     <div className="flex gap-2">
