@@ -109,30 +109,64 @@ router.post('/chat', async (req, res) => {
 // VOICE COMMAND ENDPOINT
 router.post('/command', upload.single('audio'), async (req, res) => {
     try {
+        // 1. Check for AI Key
         if (!process.env.GEMINI_API_KEY) {
-            return res.json({ action: 'TOAST', message: 'AI Key missing' });
+            return res.json({ action: 'TOAST', payload: 'AI Key missing. Voice unavailable.' });
         }
 
         if (!req.file) {
             return res.status(400).json({ error: 'No audio' });
         }
 
+        // 2. Prepare Context (if email provided)
+        const { email } = req.body;
+        let context = "User Context: Anonymous (Guest)";
+
+        if (email) {
+            const user = await User.findOne({ email });
+            if (user) {
+                const account = await Account.findOne({ userId: user._id.toString() });
+                if (account) {
+                    const transactions = await Transaction.find({ senderAccountId: account._id.toString() })
+                        .sort({ createdAt: -1 })
+                        .limit(5);
+
+                    context = `User Context:
+                    - Name: ${user.fullName}
+                    - Current Balance: ₹${account.balance}
+                    - Recent Transactions: ${transactions.map(t => `${t.type} ₹${t.amount} (${t.category})`).join(', ')}`;
+                }
+            }
+        }
+
+        // 3. Process with Gemini
+        // Load Banking Terminology
+        const bankingTerms = require('../data/banking_terminology.json');
+
         const audioBase64 = req.file.buffer.toString('base64');
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = `
-            You are a banking assistant. Listen to the user command and map it to a JSON action.
+            You are NexusBank's advanced Voice Assistant. 
             
-            Possible actions:
-            - "NAVIGATE": if user wants to go somewhere. payload: path (e.g., "/dashboard", "/dashboard/payments")
-            - "TOAST": if user asks a general question. payload: short text answer.
+            GLOBAL BANKING TERMINOLOGY DATABASE:
+            ${JSON.stringify(bankingTerms)}
+
+            INSTRUCTIONS:
+            1. **Detect Language**: Identify the language spoken by the user (e.g., Bengali, Kannada, Hindi).
+            2. **Use Official Terminology**: When replying, YOU MUST use the terms from the database above for that language.
+               - Example (Hindi): Don't just say "Balance", say "शेष राशि (Balance)".
+               - Example (Kannada): Don't just say "Transaction", say "ವ್ಯವಹಾರ (Transaction)".
+            3. **Context Aware**: Use the User Context below to answer specific questions.
             
-            Examples:
-            "Go to transfers" -> { "action": "NAVIGATE", "payload": "/dashboard/payments" }
-            "Take me home" -> { "action": "NAVIGATE", "payload": "/dashboard" }
-            "Hello" -> { "action": "TOAST", "payload": "Hello! How can I help?" }
+            ${context}
             
-            Respond ONLY with the JSON.
+            OUTPUT STRICTLY JSON:
+            {
+                "reply": "Spoken response using the OFFICIAL TERMINOLOGY for the detected language.",
+                "action": "NAVIGATE" | "TOAST" | "OPEN_TAB" | null,
+                "payload": "..."
+            }
         `;
 
         const result = await model.generateContent([

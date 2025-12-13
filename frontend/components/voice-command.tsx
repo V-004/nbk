@@ -4,13 +4,15 @@ import { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { Mic, MicOff, Loader2 } from "lucide-react"
 import { useRouter } from 'next/navigation'
-import { toast } from 'sonner' // Assuming sonner or use toast from hooks
+import { toast } from 'sonner'
+import { useAuth } from '@/contexts/auth-context'
 
 export function VoiceCommand() {
     const [isListening, setIsListening] = useState(false)
     const [processing, setProcessing] = useState(false)
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
+    const { user } = useAuth()
     const router = useRouter()
 
     const startListening = async () => {
@@ -51,6 +53,11 @@ export function VoiceCommand() {
     const processVoiceCommand = async (blob: Blob) => {
         try {
             const formData = new FormData()
+
+            // Append metadata first for better server parsing
+            if (user?.email) {
+                formData.append('email', user.email)
+            }
             formData.append('audio', blob, 'command.mp3')
 
             const res = await fetch('/api/ai/command', {
