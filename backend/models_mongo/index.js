@@ -5,5 +5,7 @@ module.exports = {
     User,
     Account,
     Transaction: require('./Transaction'),
-    Card: require('./Card')
+    Card: require('./Card'),
+    Product: require('./Product'),
+    Subscription: require('./Subscription')
 };

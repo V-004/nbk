@@ -1,78 +1,66 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Code2, Globe, Lock, Zap, BarChart3 } from "lucide-react"
+import { Check, Code2, Globe, Lock, Zap, BarChart3, Loader2 } from "lucide-react"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
+import axios from "axios"
 
-const products = [
-    {
-        title: "Identity Verification SDK",
-        price: "$499",
-        period: "/month",
-        description: "Global KYC/AML compliance with 99.9% accuracy.",
-        features: [
-            "200+ Countries Supported",
-            "Biometric Face Matching",
-            "Real-time Document Verification",
-            "Sanctions Screening"
-        ],
-        icon: Globe,
-        popular: false,
-        color: "text-blue-500",
-        bgColor: "bg-blue-100 dark:bg-blue-900/30",
-    },
-    {
-        title: "Transactions API",
-        price: "$299",
-        period: "/month",
-        description: "Connect to 5,000+ banks for real-time data.",
-        features: [
-            "Real-time Balance Checks",
-            "90-day Transaction History",
-            "Unified JSON Format",
-            "Webhook Notifications"
-        ],
-        icon: Zap,
-        popular: true,
-        color: "text-amber-500",
-        bgColor: "bg-amber-100 dark:bg-amber-900/30",
-    },
-    {
-        title: "Fraud Shield",
-        price: "$799",
-        period: "/month",
-        description: "AI-powered fraud detection and risk scoring.",
-        features: [
-            "Machine Learning Models",
-            "Device Fingerprinting",
-            "Behavioral Analytics",
-            "Chargeback Protection"
-        ],
-        icon: Lock,
-        popular: false,
-        color: "text-rose-500",
-        bgColor: "bg-rose-100 dark:bg-rose-900/30",
-    },
-    {
-        title: "Smart Analytics",
-        price: "$199",
-        period: "/month",
-        description: "Enrich transaction data with merchant insights.",
-        features: [
-            "Merchant Categorization",
-            "Spending Patterns",
-            "Logo & Location Data",
-            "Subscription Detection"
-        ],
-        icon: BarChart3,
-        popular: false,
-        color: "text-emerald-500",
-        bgColor: "bg-emerald-100 dark:bg-emerald-900/30",
-    }
-]
+// Map icon strings from DB to Lucide components
+const iconMap: any = {
+    Globe, Zap, Lock, BarChart3
+}
 
 export function ApiMarketplace() {
+    const { user, isAuthenticated } = useAuth()
+    const [products, setProducts] = useState<any[]>([])
+    const [loading, setLoading] = useState(true)
+    const [processingId, setProcessingId] = useState<string | null>(null)
+
+    useEffect(() => {
+        fetchProducts()
+    }, [])
+
+    const fetchProducts = async () => {
+        try {
+            const res = await axios.get("http://localhost:5000/api/marketplace/products")
+            setProducts(res.data)
+        } catch (err) {
+            console.error("Failed to load products", err)
+            // Fallback or empty state could be handled here
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleSubscribe = async (product: any) => {
+        if (!isAuthenticated || !user) {
+            toast.error("Please sign in to subscribe")
+            return
+        }
+
+        setProcessingId(product._id)
+        try {
+            const res = await axios.post("http://localhost:5000/api/marketplace/subscribe", {
+                email: user.email,
+                apiId: product.apiId
+            })
+
+            if (res.data.success) {
+                toast.success(res.data.message)
+                toast.info(`API Key: ${res.data.subscription.apiKey}`)
+            }
+        } catch (err: any) {
+            const errorMsg = err.response?.data?.error || "Subscription failed";
+            toast.error(errorMsg)
+        } finally {
+            setProcessingId(null)
+        }
+    }
+
     return (
         <section className="container px-4 md:px-6 py-16" id="api-marketplace">
             <div className="flex flex-col items-center justify-center space-y-4 text-center mb-12">
@@ -88,47 +76,71 @@ export function ApiMarketplace() {
                 </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-                {products.map((product, index) => (
-                    <Card key={index} className={`relative flex flex-col border-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-1 ${product.popular ? 'border-primary shadow-lg' : 'border-border/50'}`}>
-                        {product.popular && (
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                <Badge className="bg-primary hover:bg-primary px-3 py-1">Most Popular</Badge>
-                            </div>
-                        )}
+            {loading ? (
+                <div className="flex justify-center p-12">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+            ) : (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                    {products.map((product, index) => {
+                        const Icon = iconMap[product.icon] || Zap
+                        const isProcessing = processingId === product._id
+                        // Handle both dynamic DB products and static fallback structure styles if needed
+                        // For now assuming DB returns consistent structure
+                        const bgColor = "bg-primary/10"
+                        const textColor = "text-primary"
 
-                        <CardHeader>
-                            <div className={`w-12 h-12 rounded-lg ${product.bgColor} ${product.color} flex items-center justify-center mb-4`}>
-                                <product.icon className="h-6 w-6" />
-                            </div>
-                            <CardTitle className="text-xl">{product.title}</CardTitle>
-                            <CardDescription className="h-10 mt-2">{product.description}</CardDescription>
-                        </CardHeader>
+                        return (
+                            <Card key={product._id || index} className={`relative flex flex-col border-2 transition-all duration-200 hover:shadow-xl hover:-translate-y-1 ${product.isPopular ? 'border-primary shadow-lg' : 'border-border/50'}`}>
+                                {product.isPopular && (
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                                        <Badge className="bg-primary hover:bg-primary px-3 py-1">Most Popular</Badge>
+                                    </div>
+                                )}
 
-                        <CardContent className="flex-1">
-                            <div className="mb-6">
-                                <span className="text-3xl font-bold">{product.price}</span>
-                                <span className="text-muted-foreground">{product.period}</span>
-                            </div>
-                            <ul className="space-y-3">
-                                {product.features.map((feature, i) => (
-                                    <li key={i} className="flex items-center text-sm text-muted-foreground">
-                                        <Check className="h-4 w-4 mr-2 text-primary shrink-0" />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-                        </CardContent>
+                                <CardHeader>
+                                    <div className={`w-12 h-12 rounded-lg ${bgColor} ${textColor} flex items-center justify-center mb-4`}>
+                                        <Icon className="h-6 w-6" />
+                                    </div>
+                                    <CardTitle className="text-xl">{product.name}</CardTitle>
+                                    <CardDescription className="h-10 mt-2">{product.description}</CardDescription>
+                                </CardHeader>
 
-                        <CardFooter>
-                            <Button className="w-full" variant={product.popular ? "default" : "outline"}>
-                                <Code2 className="mr-2 h-4 w-4" />
-                                Get API Keys
-                            </Button>
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
+                                <CardContent className="flex-1">
+                                    <div className="mb-6">
+                                        <span className="text-3xl font-bold">${product.price}</span>
+                                        <span className="text-muted-foreground">{product.period || '/month'}</span>
+                                    </div>
+                                    <ul className="space-y-3">
+                                        {product.features.map((feature: string, i: number) => (
+                                            <li key={i} className="flex items-center text-sm text-muted-foreground">
+                                                <Check className="h-4 w-4 mr-2 text-primary shrink-0" />
+                                                {feature}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+
+                                <CardFooter>
+                                    <Button
+                                        className="w-full"
+                                        variant={product.isPopular ? "default" : "outline"}
+                                        onClick={() => handleSubscribe(product)}
+                                        disabled={isProcessing}
+                                    >
+                                        {isProcessing ? (
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        ) : (
+                                            <Code2 className="mr-2 h-4 w-4" />
+                                        )}
+                                        {isProcessing ? "Processing..." : "Subscribe"}
+                                    </Button>
+                                </CardFooter>
+                            </Card>
+                        )
+                    })}
+                </div>
+            )}
         </section>
     )
 }

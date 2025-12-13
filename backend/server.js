@@ -86,7 +86,9 @@ app.use('/api/accounts', accountRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/rewards', rewardRoutes);
+app.use('/api/marketplace', require('./routes/marketplace'));
 
 const PORT = process.env.PORT || 5000;
 
