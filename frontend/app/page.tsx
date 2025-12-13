@@ -7,6 +7,7 @@ import { PlatformStatistics } from "@/components/platform-statistics"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
 import { ArrowRight, ShieldCheck, Zap, Globe, Smartphone, CreditCard, Sparkles } from "lucide-react"
+import { ApiMarketplace } from "@/components/api-marketplace"
 
 export default function Home() {
   const { isAuthenticated } = useAuth()
@@ -110,6 +111,8 @@ export default function Home() {
       <div className="container px-4 md:px-6">
         <PlatformStatistics />
       </div>
+
+      <ApiMarketplace />
 
       <section className="container px-4 md:px-6 mt-8 mb-8">
         <Card className="bg-primary text-primary-foreground border-none">

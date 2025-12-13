@@ -10,6 +10,37 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "invalid_key"
 
 const { User, Account, Transaction } = require('../models_mongo');
 
+// Helper: Generate content with fallback models
+// Helper: Generate content with fallback models
+async function generateWithFallback(prompt, imagePart = null) {
+    // 429 Quota Handling: Fallback to reliable latest alias if generic 2.0 fails
+    const models = ["gemini-2.0-flash", "gemini-flash-latest", "gemini-pro-latest"];
+
+    console.log("[AI] Starting generation with fallback chain...");
+
+    for (const modelName of models) {
+        try {
+            console.log(`[AI] Attempting model: ${modelName}`);
+            const model = genAI.getGenerativeModel({ model: modelName });
+
+            let result;
+            if (imagePart) {
+                result = await model.generateContent([prompt, imagePart]);
+            } else {
+                result = await model.generateContent(prompt);
+            }
+
+            console.log(`[AI] Success with ${modelName}`);
+            return result; // Success
+        } catch (err) {
+            console.warn(`[AI] Model ${modelName} failed: ${err.message}`);
+            // Continue to next model
+        }
+    }
+    console.error("[AI] All models failed in chain.");
+    throw new Error("All AI models failed");
+}
+
 // CHATBOT INTERACTION
 router.post('/chat', async (req, res) => {
     try {
@@ -39,40 +70,12 @@ router.post('/chat', async (req, res) => {
 
         if (process.env.GEMINI_API_KEY) {
             try {
-                const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                // OLD: const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+                // OLD: const result = await model.generateContent(prompt);
 
-                const prompt = `You are NexusBank Assistant, a helpful and polyglot banking AI.
-                
-                ${context}
-                
-                Supported Languages: English, Hindi, Kannada, Tamil, Telugu, Bengali, Marathi.
-                You understand mixed-code input (e.g., "Hinglish", "Kanglish").
-                
-                If the user speaks in an Indian language, reply in that same language (or English if requested).
-                Be concise and helpful.
+                // NEW: Robust Fallback
+                const result = await generateWithFallback(prompt);
 
-                Available Internal Routes (use "action": "navigate"):
-                - /dashboard (Home)
-                - /dashboard/accounts (Accounts)
-                - /dashboard/payments (Transfer/Pay)
-                - /dashboard/cards (Manage Cards)
-                - /dashboard/transactions (History)
-                - /dashboard/support (Support)
-                - /login (Sign In)
-                
-                External Capabilities (use "action": "open_tab"):
-                - Documentation (https://nextjs.org/docs)
-                
-                User Query: "${message}"
-
-                Instructions:
-                1. Answer the query concisely. Use the provided transaction context if meaningful.
-                2. If user wants to navigate internally, set "action": "navigate", "payload": "route".
-                3. If user wants external link, set "action": "open_tab", "payload": "URL".
-                4. Return ONLY a valid JSON object: { "reply": "...", "action": "navigate"|"open_tab"|null, "payload": "..."|null }
-                `;
-
-                const result = await model.generateContent(prompt);
                 const response = await result.response;
                 let text = response.text();
                 text = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -144,8 +147,6 @@ router.post('/command', upload.single('audio'), async (req, res) => {
         const bankingTerms = require('../data/banking_terminology.json');
 
         const audioBase64 = req.file.buffer.toString('base64');
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-
         const prompt = `
             You are NexusBank's advanced Voice Assistant. 
             
@@ -169,15 +170,12 @@ router.post('/command', upload.single('audio'), async (req, res) => {
             }
         `;
 
-        const result = await model.generateContent([
-            prompt,
-            {
-                inlineData: {
-                    mimeType: "audio/mp3",
-                    data: audioBase64
-                }
+        const result = await generateWithFallback(prompt, {
+            inlineData: {
+                mimeType: "audio/mp3",
+                data: audioBase64
             }
-        ]);
+        });
 
         const responseText = result.response.text();
         const cleanJson = responseText.replace(/```json/g, '').replace(/```/g, '').trim();

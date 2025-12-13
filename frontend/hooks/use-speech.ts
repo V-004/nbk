@@ -64,7 +64,12 @@ export function useSpeech() {
         }
         recognition.onerror = (event: any) => {
             if (event.error === 'aborted') {
-                // Ignore aborted error as it's likely intentional or due to restart
+                return
+            }
+            if (event.error === 'audio-capture') {
+                console.error("No microphone found or permission denied.")
+                // Ideally trigger a toast or UI state here, but for now just stop cleanly
+                setIsListening(false)
                 return
             }
             console.error("Speech recognition error", event.error)

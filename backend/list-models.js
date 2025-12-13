@@ -1,9 +1,8 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function listModels() {
-    console.log("-----------------------------------------");
     console.log("Checking Available Gemini Models...");
     console.log("Using Key:", process.env.GEMINI_API_KEY ? "Found (Length: " + process.env.GEMINI_API_KEY.length + ")" : "MISSING");
 
@@ -13,37 +12,34 @@ async function listModels() {
     }
 
     try {
-        // We can't list models directly with the high-level SDK easily in all versions,
-        // but let's try a direct fetch to the API endpoint which is often more revealing for 404s.
-        // Actually, the SDK might not expose listModels on the client instance directly in older versions?
-        // Let's try to just instantiate the client and see if we can hit a basic endpoint.
-
-        // Wait, the error message literally said: "Call ListModels".
-        // Use the API KEY to fetch the models list via REST to be safe and dependency-agnostic.
+        // Fallback to fetch if SDK listModels is tricky to invoke directly without full client setup
+        // But SDK has it:
+        // const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        // This SDK version might not expose listModels directly on the main class easily?
+        // Let's try raw fetch first as it's most reliable for debugging network/key issues.
 
         const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
-
         const response = await fetch(url);
-        const data = await response.json();
 
-        if (data.models) {
-            console.log("\nSUCCESS! Available Models:");
-            data.models.forEach(m => {
-                // Filter for generateContent supported models
-                if (m.supportedGenerationMethods && m.supportedGenerationMethods.includes('generateContent')) {
-                    console.log(`- ${m.name.replace('models/', '')}`);
-                }
-            });
-            console.log("\nPlease tell your AI assistant which model from this list you want to use.");
-        } else {
-            console.error("\nFAILED to list models. Response:");
-            console.log(JSON.stringify(data, null, 2));
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status} ${response.statusText}`);
         }
 
-    } catch (error) {
-        console.error("Network Error:", error.message);
+        const data = await response.json();
+        console.log("\n--- AVAILABLE MODELS ---");
+        if (data.models) {
+            data.models.forEach(m => {
+                if (m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent")) {
+                    console.log(`- ${m.name} (${m.displayName})`);
+                }
+            });
+        } else {
+            console.log("No models found in response:", data);
+        }
+
+    } catch (err) {
+        console.error("FAILED to list models:", err.message);
     }
-    console.log("-----------------------------------------");
 }
 
 listModels();
